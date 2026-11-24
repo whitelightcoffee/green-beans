@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-build="2026-11-24-2">
+<html lang="zh-Hant" data-build="2026-11-24-4">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -208,6 +208,49 @@ const STATUS_FILTERS = [
 const MARK_OPTIONS = ['', 'new', '即將進貨', '售完'];
 const STOCK_QUICK = ['低庫存', '0'];
 
+/* ---- 定價／分類規則 ----
+   熟豆零售價 200g = 生豆進貨價 + 10
+   進貨價 < 600 → 日常；600–999 → 精選；≥ 1000 → 冠軍/頂級 */
+const RETAIL_MARKUP = 10;
+
+/* ---- 生豆商下拉選單 ----
+   基本名單（依 2026/11 表上現有豆商）＋ 表上出現過的豆商會自動加入。
+   新豆商選「＋ 其他」直接打字，送出後下次就會出現在選單裡。 */
+const VENDORS_BASE = ['克菈菈', '圓石', '井井', 'Ergos', '豆超', 'Tri Up', '聯傑'];
+const VENDOR_OTHER = '__other__';
+function vendorList(){
+  const seen = new Map();
+  const add = v => { v = String(v||'').trim(); if (v && !seen.has(v.toLowerCase().replace(/\s+/g,''))) seen.set(v.toLowerCase().replace(/\s+/g,''), v); };
+  VENDORS_BASE.forEach(add);
+  (state.data ? state.data.beans : []).forEach(b => add(b.vendor));
+  return [...seen.values()];
+}
+function vendorField(val){
+  const list = vendorList();
+  val = String(val||'').trim();
+  const hit = list.find(v => v.toLowerCase().replace(/\s+/g,'') === val.toLowerCase().replace(/\s+/g,''));
+  const isOther = val && !hit;
+  return `<div class="f"><label>豆商</label>
+    <select id="e-vendor-sel" onchange="onVendorSel()">
+      <option value="" ${!val?'selected':''}>— 選擇豆商 —</option>
+      ${list.map(v => `<option value="${esc(v)}" ${hit===v?'selected':''}>${esc(v)}</option>`).join('')}
+      <option value="${VENDOR_OTHER}" ${isOther?'selected':''}>＋ 其他（自己輸入）</option>
+    </select>
+    <input id="e-vendor" value="${esc(hit || val)}" placeholder="輸入新豆商名稱" style="margin-top:8px;${isOther?'':'display:none'}">
+  </div>`;
+}
+function onVendorSel(){
+  const sel = document.getElementById('e-vendor-sel'), inp = document.getElementById('e-vendor');
+  if (sel.value === VENDOR_OTHER){ inp.style.display = ''; inp.value = ''; inp.focus(); }
+  else { inp.style.display = 'none'; inp.value = sel.value; }
+}
+const TIERS = [
+  {min:1000, match: s => /冠軍|頂級/.test(s), label:'冠軍/頂級'},
+  {min:600,  match: s => /精選/.test(s),      label:'精選'},
+  {min:0,    match: s => /日常/.test(s),      label:'日常'},
+];
+function tierFor(cost){ return TIERS.find(t => cost >= t.min); }
+
 const FIELDS = [
   // key, 標籤, 群組, 型態
   ['mark','標記','status'],
@@ -215,7 +258,8 @@ const FIELDS = [
   ['vendor','豆商','basic'],
   ['name','品名','basic'],
   ['flavor','參考風味','basic'],
-  ['price200','零售價 200g','basic'],
+  ['cost','生豆進貨價','basic'],
+  ['price200','零售價 200g（熟豆）','basic'],
   ['altitude','海拔','origin'],
   ['variety','品種','origin'],
   ['process','處理法','origin'],
@@ -470,6 +514,7 @@ function openDetail(row){
     ['豆商', esc(b.vendor)],
     ['英文品名', esc(en)],
     ['參考風味', esc(b.flavor)],
+    ['生豆進貨價', num(b.cost)!==null ? `$${num(b.cost).toLocaleString()}` : esc(b.cost)],
     ['零售價', p200!==null ? `200g $${p200.toLocaleString()}` + (p100!==null ? `　·　100g $${p100.toLocaleString()}` : '') : ''],
     ['海拔', esc(b.altitude)],
     ['品種', esc(b.variety)],
@@ -551,9 +596,10 @@ function fieldInput(key, label, val){
   const v = esc(val ?? '');
   switch(key){
     case 'name': return `<div class="f"><label>${label} <span class="req">*</span></label><textarea id="e-name" rows="2" placeholder="中文品名（可換行接英文）">${v}</textarea></div>`;
-    case 'vendor': return `<div class="f"><label>${label}</label><input id="e-vendor" value="${v}" list="dl-vendor" placeholder="克菈菈、圓石、井井…"></div>`;
+    case 'vendor': return vendorField(val);
     case 'flavor': return `<div class="f"><label>${label}</label><input id="e-flavor" value="${v}" placeholder="用 . 或 、 分隔，例如 莓果.桃子.花"></div>`;
-    case 'price200': return `<div class="f"><label>${label}</label><input id="e-price200" value="${v}" inputmode="numeric" placeholder="例如 560" oninput="updP100()"><div class="hint" id="p100hint"></div></div>`;
+    case 'cost': return `<div class="f"><label>${label}</label><input id="e-cost" value="${v}" inputmode="numeric" placeholder="例如 550" oninput="onCost()"><div class="hint" id="costhint">輸入後自動帶出熟豆價（+${RETAIL_MARKUP}）${state._isAdd?'和分類':''}</div></div>`;
+    case 'price200': return `<div class="f"><label>${label}</label><input id="e-price200" value="${v}" inputmode="numeric" placeholder="例如 560" oninput="this.dataset.manual='1';updP100()"><div class="hint" id="p100hint"></div></div>`;
     case 'process': return `<div class="f"><label>${label}</label><input id="e-process" value="${v}" list="dl-process"></div>`;
     case 'variety': return `<div class="f"><label>${label}</label><input id="e-variety" value="${v}" list="dl-variety"></div>`;
     case 'link': return `<div class="f"><label>${label}</label><input id="e-link" value="${v}" inputmode="url" placeholder="https://…"></div>`;
@@ -566,11 +612,12 @@ function fieldInput(key, label, val){
   }
 }
 function formHtml(b, isAdd){
+  state._isAdd = isAdd;
   const g = name => FIELDS.filter(f=>f[2]===name).map(f=>fieldInput(f[0], f[1], b[f[0]])).join('');
   const secs = state.data.sections.map(s=>s.name);
   const defSec = isAdd ? (state.section !== 'all' ? state.section : (secs.find(s=>s.includes('日常')) || secs[0] || '')) : '';
   return `
-    ${isAdd ? `<div class="fgroup"><h3>放在哪個分類</h3><div class="f"><select id="e-section">${secs.map(s=>`<option ${s===defSec?'selected':''}>${esc(s)}</option>`).join('')}</select><div class="hint">會插在這個分類的最後一列</div></div></div>` : ''}
+    ${isAdd ? `<div class="fgroup"><h3>放在哪個分類</h3><div class="f"><select id="e-section">${secs.map(s=>`<option ${s===defSec?'selected':''}>${esc(s)}</option>`).join('')}</select><div class="hint">輸入生豆進貨價會自動選分類，也可以手動改；會插在這個分類的最後一列</div></div></div>` : ''}
     <div class="fgroup"><h3>基本</h3>${g('basic')}</div>
     <div class="fgroup"><h3>庫存</h3>${g('status')}</div>
     <div class="fgroup"><h3>產地</h3>${g('origin')}</div>
@@ -578,6 +625,24 @@ function formHtml(b, isAdd){
     <div class="fgroup">${staffField('e-staff')}</div>
     <div class="err" id="e-err"></div>
     <div class="actions"><button class="btn primary" id="e-go" onclick="${isAdd?'submitAdd()':`submitEdit(${b.row})`}">${isAdd?'新增到試算表':'儲存修改'}</button></div>`;
+}
+function onCost(){
+  const c = num(document.getElementById('e-cost').value);
+  const hint = document.getElementById('costhint');
+  if (c === null){ hint.textContent = `輸入後自動帶出熟豆價（+${RETAIL_MARKUP}）${state._isAdd?'和分類':''}`; return; }
+  const p = document.getElementById('e-price200');
+  p.value = String(c + RETAIL_MARKUP); delete p.dataset.manual;
+  const tier = tierFor(c);
+  let msg = `熟豆 200g = ${c} + ${RETAIL_MARKUP} = $${(c+RETAIL_MARKUP).toLocaleString()}`;
+  const sel = document.getElementById('e-section');
+  if (sel && tier){
+    const opt = [...sel.options].find(o => tier.match(o.value));
+    if (opt){ sel.value = opt.value; msg += `　→ 分類：${opt.value}`; }
+  } else if (tier){
+    msg += `（價位屬於「${tier.label}」；已在表上的豆子不會自動換分類）`;
+  }
+  hint.textContent = msg;
+  updP100();
 }
 function updP100(){
   const el = document.getElementById('p100hint'); if (!el) return;
