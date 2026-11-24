@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-build="2026-11-24-4">
+<html lang="zh-Hant" data-build="2026-11-24-5">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -87,6 +87,11 @@
   .b-incoming{background:color-mix(in srgb,var(--incoming) 14%,#fff);color:var(--incoming)}
   .b-out{background:#EEEFEC;color:#77796F}
   .b-kg{background:#F1F2EE;color:var(--ink-soft)}
+  .outtoggle{display:flex;align-items:center;gap:8px;width:100%;margin-top:30px;padding:13px 16px;border:1px dashed #C9CBC6;border-radius:14px;background:#EEEFEC;color:var(--ink-soft);font-size:14px;font-weight:700;letter-spacing:.06em;cursor:pointer}
+  .outtoggle .n{font-weight:400;color:var(--muted);letter-spacing:0}
+  .outtoggle .arr{margin-left:auto;font-weight:500;font-size:13px;color:var(--muted)}
+  .outblock .sec-title .dot{background:var(--out)}
+  .outblock .bean{background:#F7F7F5}
   .empty{padding:40px 10px;text-align:center;color:var(--muted);font-size:14px}
 
   /* ---------- 新增按鈕 ---------- */
@@ -199,11 +204,12 @@ const GAS_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbzp9y99c31KiIQm
 const BUILD_ID = document.documentElement.dataset.build;
 
 const STATUS_FILTERS = [
-  {k:'all', label:'全部'},
+  {k:'instock', label:'現有庫存'},
   {k:'new', label:'新到'},
   {k:'low', label:'低庫存'},
   {k:'incoming', label:'即將進貨'},
-  {k:'out', label:'售完'},
+  {k:'out', label:'零庫存'},
+  {k:'all', label:'全部'},
 ];
 const MARK_OPTIONS = ['', 'new', '即將進貨', '售完'];
 const STOCK_QUICK = ['低庫存', '0'];
@@ -275,7 +281,8 @@ let state = {
   data: null,          // {tab, latest, tabs, sections, beans, fetchedAt}
   tab: localStorage.getItem('gb_tab') || '',
   q: '',
-  status: 'all',
+  status: 'instock',
+  showOut: false,      // 現有庫存頁底部的「零庫存」區塊是否展開
   section: 'all',
   loading: false,
 };
@@ -407,6 +414,7 @@ function filtered(ignore){
       const st = beanStatus(b);
       if (state.status === 'new'){ const m = String(b.mark||'').toLowerCase(); if (!(m==='new'||m.includes('新')) || st==='out') return false; }
       else if (state.status === 'low'){ if (!String(b.stock).includes('低') || st==='out') return false; }
+      else if (state.status === 'instock'){ if (st === 'out') return false; }
       else if (st !== state.status) return false;
     }
     if (ignore !== 'section' && state.section !== 'all' && b.section !== state.section) return false;
@@ -421,7 +429,7 @@ function filtered(ignore){
 function renderChips(){
   const d = state.data; if (!d) return;
   const forStatus = filtered('status');
-  const cnt = k => k==='all' ? forStatus.length : forStatus.filter(b => {
+  const cnt = k => k==='all' ? forStatus.length : k==='instock' ? forStatus.filter(b => beanStatus(b)!=='out').length : forStatus.filter(b => {
     const st = beanStatus(b), m = String(b.mark||'').toLowerCase();
     if (k==='new') return (m==='new'||m.includes('新')) && st!=='out';
     if (k==='low') return String(b.stock).includes('低') && st!=='out';
@@ -442,14 +450,26 @@ function renderList(){
   if (!hasUrl()){ wrap.innerHTML=''; document.getElementById('count').textContent=''; return; }
   const d = state.data; if (!d) return;
   const items = filtered();
-  document.getElementById('count').textContent = `顯示 ${items.length} / ${d.beans.length} 支`;
-  if (!items.length){ wrap.innerHTML = '<div class="empty">沒有符合的生豆</div>'; return; }
+  // 現有庫存模式：零庫存的豆子另外收在最下面
+  const outItems = state.status === 'instock' ? filtered('status').filter(b => beanStatus(b) === 'out') : [];
+  document.getElementById('count').textContent = `顯示 ${items.length} 支` + (state.status==='instock' ? `　·　零庫存 ${outItems.length} 支另列` : ` / 共 ${d.beans.length} 支`);
+  let html = items.length ? groupHtml(items) : '<div class="empty">沒有符合的生豆</div>';
+  if (outItems.length){
+    html += `<button class="outtoggle" onclick="toggleOut()">
+        <span>零庫存</span><span class="n">${outItems.length} 支</span><span class="arr">${state.showOut?'收起 ▴':'展開 ▾'}</span>
+      </button>`;
+    if (state.showOut) html += `<div class="outblock">${groupHtml(outItems)}</div>`;
+  }
+  wrap.innerHTML = html;
+}
+function groupHtml(items){
   const groups = [];
   items.forEach(b => { let g = groups.find(x=>x.s===b.section); if (!g){ g={s:b.section,items:[]}; groups.push(g); } g.items.push(b); });
-  wrap.innerHTML = groups.map(g => `
+  return groups.map(g => `
     <div class="sec-title"><span class="dot"></span>${esc(g.s)}<span class="n">${g.items.length}</span></div>
     <div class="list">${g.items.map(beanCard).join('')}</div>`).join('');
 }
+function toggleOut(){ state.showOut = !state.showOut; renderList(); }
 function beanCard(b){
   const [zh, en] = splitName(b.name);
   const st = beanStatus(b);
