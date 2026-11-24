@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-build="2026-11-24-1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>生豆庫存 · 白光</title>
+<meta name="theme-color" content="#F5F6F4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="生豆庫存">
+<link rel="icon" href="https://whitelightcoffee.github.io/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="https://whitelightcoffee.github.io/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F4; --card:#FFFFFF; --ink:#191A1C; --ink-soft:#4B4D50; --muted:#8B8D8A; --line:#E6E7E3;
+    --gb:#7A8B2A;          /* 生豆 · 橄欖綠 */
+    --new:#2E9E5B; --low:#E39A2B; --incoming:#4F86C0; --out:#A3A5A1; --danger:#C8432B;
+    --serif:"Noto Serif TC",serif;
+    --sans:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+  button,input,select,textarea{font-family:inherit;font-size:16px;color:inherit}
+  .wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 110px)}
+
+  /* ---------- 標頭 ---------- */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .back{display:inline-flex;align-items:center;gap:4px;color:var(--muted);text-decoration:none;font-size:13px;letter-spacing:.06em}
+  h1{font-family:var(--serif);font-size:32px;line-height:1.1;margin:10px 0 0}
+  .sub{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .tabsel{appearance:none;-webkit-appearance:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 28px 5px 12px;font-size:13px;font-weight:500;color:var(--ink);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238B8D8A' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+  .iconbtn{border:1px solid var(--line);background:#fff;border-radius:999px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;color:var(--ink-soft);flex:0 0 auto}
+  .iconbtn svg{width:18px;height:18px}
+  .iconbtn.spin svg{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spectrum{height:4px;border-radius:99px;margin-top:14px;background:linear-gradient(90deg,var(--gb),#B8A35A 55%,var(--low))}
+
+  .oldtab{margin-top:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--low) 10%,#fff);border:1px solid color-mix(in srgb,var(--low) 30%,var(--line));font-size:13px;color:var(--ink-soft)}
+  .setup{margin-top:14px;padding:14px;border-radius:14px;background:#fff;border:1px dashed var(--danger);font-size:13.5px}
+  .setup input{width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+  .setup button{margin-top:8px}
+
+  /* ---------- 搜尋 + 篩選（黏在上方） ---------- */
+  .sticky{position:sticky;top:0;z-index:5;background:var(--paper);padding:12px 0 8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+  .search{position:relative}
+  .search input{width:100%;padding:12px 40px 12px 40px;border:1px solid var(--line);border-radius:14px;background:#fff;outline:none}
+  .search input:focus{border-color:color-mix(in srgb,var(--gb) 55%,var(--line))}
+  .search .mag{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
+  .search .clr{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);font-size:20px;padding:4px 8px;cursor:pointer;display:none}
+  .chips{display:flex;gap:7px;overflow-x:auto;margin-top:10px;padding-bottom:2px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;font-size:13.5px;cursor:pointer;color:var(--ink-soft);white-space:nowrap}
+  .chip .n{color:var(--muted);font-size:12px;margin-left:3px}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .chip.on .n{color:rgba(255,255,255,.65)}
+  .count{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+  /* ---------- 清單 ---------- */
+  .sec-title{display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-size:13px;font-weight:700;letter-spacing:.12em;color:var(--ink-soft)}
+  .sec-title .dot{width:8px;height:8px;border-radius:99px;background:var(--gb)}
+  .sec-title .n{font-weight:400;color:var(--muted);letter-spacing:0}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .bean{--hue:var(--gb);position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 14px 13px 18px;cursor:pointer;text-align:left;width:100%;transition:transform .12s ease}
+  .bean:active{transform:scale(.988)}
+  .bean::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--hue)}
+  .bean.st-low{--hue:var(--low)} .bean.st-incoming{--hue:var(--incoming)} .bean.st-out{--hue:var(--out)} .bean.st-new{--hue:var(--new)}
+  .bean.st-out .bname{color:var(--muted)}
+  .brow{display:flex;gap:10px;align-items:flex-start}
+  .bmain{flex:1;min-width:0}
+  .bname{font-family:var(--serif);font-weight:600;font-size:16.5px;line-height:1.35}
+  .ben{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bmeta{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+  .bmeta b{font-weight:700;color:var(--ink)}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .tag{font-size:12px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--gb) 10%,#fff);color:color-mix(in srgb,var(--gb) 70%,#000)}
+  .bside{flex:0 0 auto;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .price{font-size:15px;font-weight:700;white-space:nowrap}
+  .price small{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
+  .badge{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;letter-spacing:.03em}
+  .b-new{background:color-mix(in srgb,var(--new) 14%,#fff);color:var(--new)}
+  .b-low{background:color-mix(in srgb,var(--low) 16%,#fff);color:#B06F0F}
+  .b-incoming{background:color-mix(in srgb,var(--incoming) 14%,#fff);color:var(--incoming)}
+  .b-out{background:#EEEFEC;color:#77796F}
+  .b-kg{background:#F1F2EE;color:var(--ink-soft)}
+  .empty{padding:40px 10px;text-align:center;color:var(--muted);font-size:14px}
+
+  /* ---------- 新增按鈕 ---------- */
+  .fab{position:fixed;right:max(16px,calc(50% - 264px));bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:8;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;font-size:15px;padding:14px 20px;display:flex;align-items:center;gap:6px;box-shadow:0 10px 26px rgba(25,26,28,.25);cursor:pointer}
+  .fab:active{transform:scale(.97)}
+
+  /* ---------- 底部面板 ---------- */
+  .mask{position:fixed;inset:0;background:rgba(25,26,28,.38);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+  .mask.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:560px;margin:0 auto;background:var(--paper);border-radius:22px 22px 0 0;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .26s cubic-bezier(.2,.8,.2,1)}
+  .sheet.on{transform:none}
+  .grab{width:40px;height:5px;border-radius:99px;background:#D5D6D2;margin:9px auto 0;flex:0 0 auto}
+  .sh-head{display:flex;align-items:flex-start;gap:10px;padding:12px 18px 10px;flex:0 0 auto}
+  .sh-head h2{flex:1;margin:0;font-family:var(--serif);font-size:20px;line-height:1.3}
+  .sh-head .x{border:0;background:#E9EAE6;border-radius:99px;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--ink-soft);flex:0 0 auto}
+  .sh-body{overflow-y:auto;padding:0 18px calc(env(safe-area-inset-bottom) + 20px);-webkit-overflow-scrolling:touch}
+
+  .kv{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .kv div{display:flex;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-size:14px}
+  .kv div:first-child{border-top:0}
+  .kv dt{flex:0 0 92px;color:var(--muted);margin:0}
+  .kv dd{flex:1;margin:0;word-break:break-word;white-space:pre-line}
+  .kv a{color:var(--incoming)}
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:13px;padding:13px 12px;font-weight:700;font-size:15px;cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.gb{background:var(--gb);border-color:var(--gb);color:#fff}
+  .btn:disabled{opacity:.5}
+  .small{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
+
+  /* ---------- 表單 ---------- */
+  .fgroup{background:#fff;border:1px solid var(--line);border-radius:14px;padding:4px 14px;margin-bottom:12px}
+  .fgroup h3{margin:12px 0 2px;font-size:12px;letter-spacing:.14em;color:var(--muted);font-weight:700}
+  .f{padding:9px 0;border-top:1px solid var(--line)}
+  .fgroup h3 + .f{border-top:0}
+  .f label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:500}
+  .f label .req{color:var(--danger)}
+  .f input,.f select,.f textarea{width:100%;border:1px solid var(--line);background:#FBFBFA;border-radius:10px;padding:10px 12px;outline:none}
+  .f textarea{min-height:64px;resize:vertical}
+  .f input:focus,.f select:focus,.f textarea:focus{border-color:color-mix(in srgb,var(--gb) 60%,var(--line));background:#fff}
+  .f .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pick{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+  .pick button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:13.5px;cursor:pointer}
+  .pick button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .err{color:var(--danger);font-size:13px;margin-top:8px;min-height:1em}
+  .f input.bad{border-color:var(--danger);background:#FFF6F4}
+
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translateX(-50%);z-index:40;background:var(--ink);color:#fff;font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(25,26,28,.28);opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+  .toast.on{opacity:1}
+  .build{text-align:center;color:var(--muted);font-size:11px;margin-top:28px;letter-spacing:.06em}
+  .build button{border:0;background:none;color:var(--muted);font-size:11px;text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="https://whitelightcoffee.github.io/">← 白光工具箱</a>
+    <button class="iconbtn" id="reloadBtn" aria-label="重新整理" onclick="load(true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/></svg>
+    </button>
+  </div>
+  <h1>生豆庫存</h1>
+  <div class="sub">
+    <select class="tabsel" id="tabSel" aria-label="月份分頁" onchange="switchTab(this.value)"><option>載入中…</option></select>
+    <span id="fetchedAt"></span>
+  </div>
+  <div class="spectrum" aria-hidden="true"></div>
+  <div id="oldTab" class="oldtab" hidden></div>
+  <div id="setup" class="setup" hidden>
+    <b>尚未連接後端</b>：請貼上 Google Apps Script 部署後的網址（…/exec）。
+    <input id="setupUrl" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url">
+    <button class="btn primary" onclick="saveUrl()">儲存並載入</button>
+  </div>
+
+  <div class="sticky">
+    <div class="search">
+      <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="搜尋 品名、豆商、產區、風味、處理法…" autocomplete="off" oninput="onSearch()">
+      <button class="clr" id="clr" aria-label="清除" onclick="clearSearch()">×</button>
+    </div>
+    <div class="chips" id="statusChips"></div>
+    <div class="chips" id="secChips"></div>
+    <div class="count" id="count"></div>
+  </div>
+
+  <div id="listWrap"></div>
+  <div class="build">版本 <span id="buildTag"></span>　·　<button onclick="resetUrl()">更換後端網址</button></div>
+</div>
+
+<button class="fab" onclick="openAdd()"><span style="font-size:20px;line-height:1">＋</span> 新增生豆</button>
+
+<div class="mask" id="mask" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <div class="sh-head"><h2 id="shTitle"></h2><button class="x" onclick="closeSheet()" aria-label="關閉">×</button></div>
+  <div class="sh-body" id="shBody"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<datalist id="dl-vendor"></datalist>
+<datalist id="dl-process"></datalist>
+<datalist id="dl-variety"></datalist>
+
+<script>
+/* ============================================================
+   設定：部署 GAS 之後把網址貼在這裡（也可以在頁面上直接貼，存在這支手機）
+   ============================================================ */
+const GAS_URL_DEFAULT = 'PASTE_GAS_URL_HERE';
+const BUILD_ID = document.documentElement.dataset.build;
+
+const STATUS_FILTERS = [
+  {k:'all', label:'全部'},
+  {k:'new', label:'新到'},
+  {k:'low', label:'低庫存'},
+  {k:'incoming', label:'即將進貨'},
+  {k:'out', label:'售完'},
+];
+const MARK_OPTIONS = ['', 'new', '即將進貨', '售完'];
+const STOCK_QUICK = ['低庫存', '0'];
+
+const FIELDS = [
+  // key, 標籤, 群組, 型態
+  ['mark','標記','status'],
+  ['stock','庫存（kg）','status'],
+  ['vendor','豆商','basic'],
+  ['name','品名','basic'],
+  ['flavor','參考風味','basic'],
+  ['price200','零售價 200g','basic'],
+  ['altitude','海拔','origin'],
+  ['variety','品種','origin'],
+  ['process','處理法','origin'],
+  ['link','生豆商介紹（網址）','origin'],
+  ['linkDensity','Link 密度重','measure'],
+  ['ce','CE 曲線','measure'],
+  ['instWeight','儀器側重 /g','measure'],
+  ['density','生豆密度 g/L','measure'],
+  ['moisture','含水 %','measure'],
+];
+
+let state = {
+  data: null,          // {tab, latest, tabs, sections, beans, fetchedAt}
+  tab: localStorage.getItem('gb_tab') || '',
+  q: '',
+  status: 'all',
+  section: 'all',
+  loading: false,
+};
+
+/* ---------------- 共用 ---------------- */
+function gasUrl(){ return localStorage.getItem('gb_gas_url') || GAS_URL_DEFAULT; }
+function hasUrl(){ const u = gasUrl(); return u && u.indexOf('PASTE_') !== 0; }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function num(s){ const t = String(s ?? '').replace(/[,$＄\s]/g,''); return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : null; }
+function toast(msg, ms){
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), ms || 2200);
+}
+function staffName(){ return localStorage.getItem('gb_staff') || ''; }
+
+function beanStatus(b){
+  const mark = String(b.mark||'').trim().toLowerCase();
+  const stockN = num(b.stock);
+  if (mark.includes('售完') || stockN === 0) return 'out';
+  if (mark.includes('即將')) return 'incoming';
+  if (String(b.stock).includes('低')) return 'low';
+  if (mark === 'new' || mark.includes('新')) return 'new';
+  return 'ok';
+}
+function badgeHtml(b){
+  const st = beanStatus(b);
+  const out = [];
+  const markLow = String(b.mark||'').trim().toLowerCase();
+  if (st === 'out') out.push('<span class="badge b-out">售完</span>');
+  else {
+    if (markLow === 'new' || markLow.includes('新')) out.push('<span class="badge b-new">NEW</span>');
+    if (st === 'incoming') out.push('<span class="badge b-incoming">即將進貨</span>');
+    if (String(b.stock).includes('低')) out.push('<span class="badge b-low">低庫存</span>');
+    const n = num(b.stock);
+    if (n !== null) out.push(`<span class="badge b-kg">${n} kg</span>`);
+    else if (b.stock && !String(b.stock).includes('低')) out.push(`<span class="badge b-kg">${esc(b.stock)}</span>`);
+  }
+  return out.join(' ');
+}
+function splitName(name){
+  const s = String(name||'').trim();
+  const lines = s.split(/\n+/).map(x => x.trim()).filter(Boolean);
+  if (lines.length > 1) return [lines[0], lines.slice(1).join(' ')];
+  // 中英同一行：只有「後半段完全沒有中文」才切成英文副標
+  const cjk = /[㐀-鿿＀-￯]/;
+  for (let i = 1; i < s.length; i++){
+    if (!/[A-Za-z]/.test(s[i])) continue;
+    const head = s.slice(0, i), tail = s.slice(i);
+    if (cjk.test(head) && !cjk.test(tail) && tail.trim().length > 8) return [head.trim(), tail.trim()];
+  }
+  return [s, ''];
+}
+function flavorTags(f){ return String(f||'').split(/[.。、,，\/／;；\s]+/).map(x=>x.trim()).filter(Boolean); }
+
+/* ---------------- 讀取 ---------------- */
+async function api(params){
+  const u = new URL(gasUrl());
+  Object.entries(params).forEach(([k,v]) => { if (v) u.searchParams.set(k, v); });
+  u.searchParams.set('_', Date.now());
+  const r = await fetch(u.toString(), {cache:'no-store'});
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '讀取失敗');
+  return j;
+}
+async function post(body){
+  const r = await fetch(gasUrl(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '送出失敗');
+  return j;
+}
+
+function cacheKey(tab){ return 'gb_cache_' + (tab || '_latest'); }
+
+async function load(manual){
+  if (!hasUrl()){ document.getElementById('setup').hidden = false; renderList(); return; }
+  document.getElementById('setup').hidden = true;
+  // 先秀快取，畫面不空白
+  if (!state.data){
+    try { const c = JSON.parse(localStorage.getItem(cacheKey(state.tab)) || 'null'); if (c){ state.data = c; renderAll(); } } catch(e){}
+  }
+  const btn = document.getElementById('reloadBtn'); btn.classList.add('spin');
+  state.loading = true;
+  if (!state.data) document.getElementById('listWrap').innerHTML = '<div class="empty">載入中…</div>';
+  try{
+    const d = await api({action:'list', tab: state.tab});
+    state.data = d;
+    if (state.tab && state.tab !== d.tab) state.tab = d.tab;
+    try { localStorage.setItem(cacheKey(state.tab), JSON.stringify(d)); } catch(e){}
+    renderAll();
+    if (manual) toast('已更新');
+  }catch(err){
+    // 指定的舊分頁不見了 → 回到最新
+    if (state.tab && /找不到分頁|不是生豆庫存/.test(err.message)){ state.tab=''; localStorage.removeItem('gb_tab'); return load(manual); }
+    toast('讀取失敗：' + err.message, 3500);
+    if (!state.data) document.getElementById('listWrap').innerHTML = `<div class="empty">讀取失敗<br><small>${esc(err.message)}</small></div>`;
+  }finally{
+    btn.classList.remove('spin'); state.loading = false;
+  }
+}
+function switchTab(name){
+  state.tab = (state.data && name === state.data.latest) ? '' : name;
+  if (state.tab) localStorage.setItem('gb_tab', state.tab); else localStorage.removeItem('gb_tab');
+  state.data = null; state.section = 'all';
+  load();
+}
+
+/* ---------------- 畫面 ---------------- */
+function renderAll(){ renderHeader(); renderChips(); renderList(); fillDatalists(); }
+
+function renderHeader(){
+  const d = state.data; if (!d) return;
+  const sel = document.getElementById('tabSel');
+  sel.innerHTML = (d.tabs||[]).map(t => `<option value="${esc(t.name)}" ${t.name===d.tab?'selected':''}>${esc(t.label)}${t.name===d.latest?'（最新）':''}</option>`).join('');
+  const at = d.fetchedAt ? new Date(d.fetchedAt) : null;
+  document.getElementById('fetchedAt').textContent = at ? `更新於 ${at.getMonth()+1}/${at.getDate()} ${String(at.getHours()).padStart(2,'0')}:${String(at.getMinutes()).padStart(2,'0')}` : '';
+  const old = document.getElementById('oldTab');
+  if (d.tab !== d.latest){
+    const lbl = (d.tabs||[]).find(t=>t.name===d.tab);
+    old.hidden = false;
+    old.innerHTML = `正在看舊月份 <b>${esc(lbl?lbl.label:d.tab)}</b>，在這裡新增／修改會寫進這個舊分頁。`;
+  } else old.hidden = true;
+}
+
+function filtered(ignore){
+  const d = state.data; if (!d) return [];
+  const terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  return d.beans.filter(b => {
+    if (ignore !== 'status' && state.status !== 'all'){
+      const st = beanStatus(b);
+      if (state.status === 'new'){ const m = String(b.mark||'').toLowerCase(); if (!(m==='new'||m.includes('新')) || st==='out') return false; }
+      else if (state.status === 'low'){ if (!String(b.stock).includes('低') || st==='out') return false; }
+      else if (st !== state.status) return false;
+    }
+    if (ignore !== 'section' && state.section !== 'all' && b.section !== state.section) return false;
+    if (terms.length){
+      const hay = [b.name,b.vendor,b.flavor,b.variety,b.process,b.altitude,b.section,b.mark,b.stock].join(' ').toLowerCase();
+      if (!terms.every(t => hay.includes(t))) return false;
+    }
+    return true;
+  });
+}
+
+function renderChips(){
+  const d = state.data; if (!d) return;
+  const forStatus = filtered('status');
+  const cnt = k => k==='all' ? forStatus.length : forStatus.filter(b => {
+    const st = beanStatus(b), m = String(b.mark||'').toLowerCase();
+    if (k==='new') return (m==='new'||m.includes('新')) && st!=='out';
+    if (k==='low') return String(b.stock).includes('低') && st!=='out';
+    return st === k;
+  }).length;
+  document.getElementById('statusChips').innerHTML = STATUS_FILTERS.map(f =>
+    `<button class="chip ${state.status===f.k?'on':''}" onclick="setStatus('${f.k}')">${f.label}<span class="n">${cnt(f.k)}</span></button>`).join('');
+  const forSec = filtered('section');
+  const secs = [...new Set(d.beans.map(b=>b.section))];
+  document.getElementById('secChips').innerHTML = [`<button class="chip ${state.section==='all'?'on':''}" onclick="setSection('all')">所有分類</button>`]
+    .concat(secs.map(s => `<button class="chip ${state.section===s?'on':''}" onclick="setSection(${esc(JSON.stringify(s))})">${esc(s)}<span class="n">${forSec.filter(b=>b.section===s).length}</span></button>`)).join('');
+}
+function setStatus(k){ state.status = k; renderChips(); renderList(); }
+function setSection(s){ state.section = s; renderChips(); renderList(); }
+
+function renderList(){
+  const wrap = document.getElementById('listWrap');
+  if (!hasUrl()){ wrap.innerHTML=''; document.getElementById('count').textContent=''; return; }
+  const d = state.data; if (!d) return;
+  const items = filtered();
+  document.getElementById('count').textContent = `顯示 ${items.length} / ${d.beans.length} 支`;
+  if (!items.length){ wrap.innerHTML = '<div class="empty">沒有符合的生豆</div>'; return; }
+  const groups = [];
+  items.forEach(b => { let g = groups.find(x=>x.s===b.section); if (!g){ g={s:b.section,items:[]}; groups.push(g); } g.items.push(b); });
+  wrap.innerHTML = groups.map(g => `
+    <div class="sec-title"><span class="dot"></span>${esc(g.s)}<span class="n">${g.items.length}</span></div>
+    <div class="list">${g.items.map(beanCard).join('')}</div>`).join('');
+}
+function beanCard(b){
+  const [zh, en] = splitName(b.name);
+  const st = beanStatus(b);
+  const meta = [b.vendor ? `<b>${esc(b.vendor)}</b>` : '', esc(b.process), esc(b.variety)].filter(Boolean).join('　·　');
+  const tags = flavorTags(b.flavor).slice(0,6).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+  const p = num(b.price200);
+  return `<button class="bean st-${st}" onclick="openDetail(${b.row})">
+    <div class="brow">
+      <div class="bmain">
+        <div class="bname">${esc(zh)}</div>
+        ${en ? `<div class="ben">${esc(en)}</div>` : ''}
+        ${meta ? `<div class="bmeta">${meta}</div>` : ''}
+      </div>
+      <div class="bside">
+        ${p!==null ? `<div class="price">$${p.toLocaleString()}<small>/200g</small></div>` : ''}
+        <div>${badgeHtml(b)}</div>
+      </div>
+    </div>
+    ${tags ? `<div class="tags">${tags}</div>` : ''}
+  </button>`;
+}
+function fillDatalists(){
+  const d = state.data; if (!d) return;
+  const uniq = k => [...new Set(d.beans.map(b=>String(b[k]||'').trim()).filter(Boolean))].sort();
+  document.getElementById('dl-vendor').innerHTML = uniq('vendor').map(v=>`<option value="${esc(v)}">`).join('');
+  document.getElementById('dl-process').innerHTML = uniq('process').map(v=>`<option value="${esc(v)}">`).join('');
+  document.getElementById('dl-variety').innerHTML = uniq('variety').map(v=>`<option value="${esc(v)}">`).join('');
+}
+
+/* ---------------- 搜尋 ---------------- */
+function onSearch(){
+  state.q = document.getElementById('q').value.trim();
+  document.getElementById('clr').style.display = state.q ? 'block' : 'none';
+  renderChips(); renderList();
+}
+function clearSearch(){ document.getElementById('q').value=''; onSearch(); }
+
+/* ---------------- 面板 ---------------- */
+function openSheet(title, html){
+  document.getElementById('shTitle').textContent = title;
+  document.getElementById('shBody').innerHTML = html;
+  document.getElementById('shBody').scrollTop = 0;
+  document.getElementById('mask').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(){
+  document.getElementById('mask').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+  document.body.style.overflow = '';
+}
+function findBean(row){ return state.data && state.data.beans.find(b => b.row === row); }
+
+function openDetail(row){
+  const b = findBean(row); if (!b) return;
+  const [zh, en] = splitName(b.name);
+  const p200 = num(b.price200);
+  const p100 = num(b.price100);
+  const rows = [
+    ['狀態', badgeHtml(b) || '—', true],
+    ['分類', esc(b.section)],
+    ['豆商', esc(b.vendor)],
+    ['英文品名', esc(en)],
+    ['參考風味', esc(b.flavor)],
+    ['零售價', p200!==null ? `200g $${p200.toLocaleString()}` + (p100!==null ? `　·　100g $${p100.toLocaleString()}` : '') : ''],
+    ['海拔', esc(b.altitude)],
+    ['品種', esc(b.variety)],
+    ['處理法', esc(b.process)],
+    ['Link密度重', esc(b.linkDensity)],
+    ['CE曲線', esc(b.ce)],
+    ['儀器側重/g', esc(b.instWeight)],
+    ['生豆密度g/L', esc(b.density)],
+    ['含水', esc(b.moisture)],
+    ['生豆商介紹', /^https?:\/\//.test(b.link) ? `<a href="${esc(b.link)}" target="_blank" rel="noopener">開啟介紹頁 ↗</a>` : esc(b.link)],
+  ].filter(r => r[1] && r[1] !== '');
+  openSheet(zh, `
+    <dl class="kv">${rows.map(r=>`<div><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join('')}</dl>
+    <div class="actions">
+      <button class="btn gb" onclick="openStock(${b.row})">更新庫存</button>
+      <button class="btn" onclick="openEdit(${b.row})">編輯資料</button>
+    </div>
+    <div class="small">試算表第 ${b.row} 列・${esc(state.data.tab)}</div>`);
+}
+
+/* ---------- 快速更新庫存 ---------- */
+function openStock(row){
+  const b = findBean(row); if (!b) return;
+  const [zh] = splitName(b.name);
+  openSheet('更新庫存', `
+    <div class="small" style="text-align:left;margin:0 0 10px">${esc(zh)}</div>
+    <div class="fgroup">
+      <div class="f">
+        <label>庫存（kg，可直接打字）</label>
+        <input id="s-stock" value="${esc(b.stock)}" inputmode="decimal" placeholder="例如 5、2.5、低庫存">
+        <div class="pick">${STOCK_QUICK.map(v=>`<button type="button" onclick="pickVal('s-stock','${v}')">${v==='0'?'0（用完）':v}</button>`).join('')}<button type="button" onclick="pickVal('s-stock','')">清空</button></div>
+      </div>
+      <div class="f">
+        <label>標記</label>
+        ${markPicker('s-mark', b.mark)}
+      </div>
+      ${staffField('s-staff')}
+    </div>
+    <div class="err" id="s-err"></div>
+    <div class="actions"><button class="btn primary" id="s-go" onclick="submitStock(${b.row})">送出</button></div>`);
+}
+function markPicker(id, cur){
+  cur = String(cur||'').trim();
+  const known = MARK_OPTIONS.includes(cur) || MARK_OPTIONS.map(x=>x.toLowerCase()).includes(cur.toLowerCase());
+  return `<input type="hidden" id="${id}" value="${esc(cur)}">
+    <div class="pick" id="${id}-pick">${MARK_OPTIONS.map(v=>`<button type="button" class="${v.toLowerCase()===cur.toLowerCase()?'on':''}" onclick="pickMark('${id}','${v}',this)">${v===''?'無':v==='new'?'NEW 新到':v}</button>`).join('')}
+    ${!known ? `<button type="button" class="on" onclick="pickMark('${id}',${esc(JSON.stringify(cur))},this)">${esc(cur)}</button>` : ''}</div>`;
+}
+function pickMark(id, v, el){
+  document.getElementById(id).value = v;
+  el.parentNode.querySelectorAll('button').forEach(x=>x.classList.remove('on')); el.classList.add('on');
+}
+function pickVal(id, v){ const i = document.getElementById(id); i.value = v; i.focus(); }
+function staffField(id){
+  return `<div class="f"><label>夥伴姓名 <span class="req">*</span></label><input id="${id}" value="${esc(staffName())}" placeholder="誰改的（會記在異動紀錄）" autocomplete="name"></div>`;
+}
+document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('bad') && e.target.value.trim()) e.target.classList.remove('bad'); });
+function readStaff(id, errId){
+  const el = document.getElementById(id); const v = el.value.trim();
+  if (!v){ el.classList.add('bad'); el.focus(); document.getElementById(errId).textContent = '請填夥伴姓名'; return null; }
+  localStorage.setItem('gb_staff', v); return v;
+}
+async function submitStock(row){
+  const b = findBean(row); if (!b) return;
+  const staff = readStaff('s-staff','s-err'); if (!staff) return;
+  const data = {};
+  const stock = document.getElementById('s-stock').value.trim();
+  const mark = document.getElementById('s-mark').value.trim();
+  if (stock !== String(b.stock||'').trim()) data.stock = stock;
+  if (mark !== String(b.mark||'').trim()) data.mark = mark;
+  if (!Object.keys(data).length){ closeSheet(); toast('沒有變更'); return; }
+  await send('s-go','s-err', {action:'update', kind:'stock', tab: state.data.tab, row, origName: b.name, staff, data}, () => {
+    Object.assign(b, data); renderChips(); renderList(); toast('庫存已更新');
+  });
+}
+
+/* ---------- 新增／編輯 ---------- */
+function fieldInput(key, label, val){
+  const v = esc(val ?? '');
+  switch(key){
+    case 'name': return `<div class="f"><label>${label} <span class="req">*</span></label><textarea id="e-name" rows="2" placeholder="中文品名（可換行接英文）">${v}</textarea></div>`;
+    case 'vendor': return `<div class="f"><label>${label}</label><input id="e-vendor" value="${v}" list="dl-vendor" placeholder="克菈菈、圓石、井井…"></div>`;
+    case 'flavor': return `<div class="f"><label>${label}</label><input id="e-flavor" value="${v}" placeholder="用 . 或 、 分隔，例如 莓果.桃子.花"></div>`;
+    case 'price200': return `<div class="f"><label>${label}</label><input id="e-price200" value="${v}" inputmode="numeric" placeholder="例如 560" oninput="updP100()"><div class="hint" id="p100hint"></div></div>`;
+    case 'process': return `<div class="f"><label>${label}</label><input id="e-process" value="${v}" list="dl-process"></div>`;
+    case 'variety': return `<div class="f"><label>${label}</label><input id="e-variety" value="${v}" list="dl-variety"></div>`;
+    case 'link': return `<div class="f"><label>${label}</label><input id="e-link" value="${v}" inputmode="url" placeholder="https://…"></div>`;
+    case 'stock': return `<div class="f"><label>${label}</label><input id="e-stock" value="${v}" inputmode="decimal" placeholder="例如 5"><div class="pick">${STOCK_QUICK.map(x=>`<button type="button" onclick="pickVal('e-stock','${x}')">${x==='0'?'0（用完）':x}</button>`).join('')}</div></div>`;
+    case 'mark': return `<div class="f"><label>${label}</label>${markPicker('e-mark', val)}</div>`;
+    default: {
+      const numeric = ['linkDensity','instWeight','density','moisture'].includes(key);
+      return `<div class="f"><label>${label}</label><input id="e-${key}" value="${v}" ${numeric?'inputmode="decimal"':''}></div>`;
+    }
+  }
+}
+function formHtml(b, isAdd){
+  const g = name => FIELDS.filter(f=>f[2]===name).map(f=>fieldInput(f[0], f[1], b[f[0]])).join('');
+  const secs = state.data.sections.map(s=>s.name);
+  const defSec = isAdd ? (state.section !== 'all' ? state.section : (secs.find(s=>s.includes('日常')) || secs[0] || '')) : '';
+  return `
+    ${isAdd ? `<div class="fgroup"><h3>放在哪個分類</h3><div class="f"><select id="e-section">${secs.map(s=>`<option ${s===defSec?'selected':''}>${esc(s)}</option>`).join('')}</select><div class="hint">會插在這個分類的最後一列</div></div></div>` : ''}
+    <div class="fgroup"><h3>基本</h3>${g('basic')}</div>
+    <div class="fgroup"><h3>庫存</h3>${g('status')}</div>
+    <div class="fgroup"><h3>產地</h3>${g('origin')}</div>
+    <div class="fgroup"><h3>量測（可之後再補）</h3><div class="two">${FIELDS.filter(f=>f[2]==='measure').map(f=>fieldInput(f[0], f[1], b[f[0]])).join('')}</div></div>
+    <div class="fgroup">${staffField('e-staff')}</div>
+    <div class="err" id="e-err"></div>
+    <div class="actions"><button class="btn primary" id="e-go" onclick="${isAdd?'submitAdd()':`submitEdit(${b.row})`}">${isAdd?'新增到試算表':'儲存修改'}</button></div>`;
+}
+function updP100(){
+  const el = document.getElementById('p100hint'); if (!el) return;
+  const p = num(document.getElementById('e-price200').value);
+  el.textContent = p !== null ? `有賣 100g 的分類會自動算：$${(p/2+30).toLocaleString()}（200g ÷ 2 + 30）` : '';
+}
+function readForm(){
+  const data = {};
+  FIELDS.forEach(([k]) => { const el = document.getElementById('e-'+k); if (el) data[k] = el.value.trim(); });
+  return data;
+}
+function openAdd(){
+  if (!state.data){ toast('資料還沒載入'); return; }
+  openSheet('新增生豆', formHtml({}, true)); updP100();
+}
+function openEdit(row){
+  const b = findBean(row); if (!b) return;
+  openSheet('編輯資料', formHtml(b, false)); updP100();
+}
+async function submitAdd(){
+  const data = readForm();
+  if (!data.name){ document.getElementById('e-name').classList.add('bad'); document.getElementById('e-err').textContent = '品名必填'; return; }
+  const staff = readStaff('e-staff','e-err'); if (!staff) return;
+  Object.keys(data).forEach(k => { if (data[k] === '') delete data[k]; });
+  const section = document.getElementById('e-section').value;
+  await send('e-go','e-err', {action:'add', tab: state.data.tab, section, staff, data}, () => { toast('已新增'); load(); });
+}
+async function submitEdit(row){
+  const b = findBean(row); if (!b) return;
+  const all = readForm();
+  if (!all.name){ document.getElementById('e-name').classList.add('bad'); document.getElementById('e-err').textContent = '品名不能空白'; return; }
+  const staff = readStaff('e-staff','e-err'); if (!staff) return;
+  const data = {};
+  Object.keys(all).forEach(k => { if (all[k] !== String(b[k]??'').trim()) data[k] = all[k]; });
+  if (!Object.keys(data).length){ closeSheet(); toast('沒有變更'); return; }
+  await send('e-go','e-err', {action:'update', kind:'edit', tab: state.data.tab, row, origName: b.name, staff, data}, () => { toast('已儲存'); load(); });
+}
+async function send(btnId, errId, body, onOk){
+  const btn = document.getElementById(btnId); const err = document.getElementById(errId);
+  if (btn.disabled) return;           // 防連點
+  btn.disabled = true; const label = btn.textContent; btn.textContent = '送出中…'; err.textContent = '';
+  try{
+    await post(body);
+    closeSheet(); onOk();
+  }catch(e){
+    err.textContent = '失敗：' + e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+/* ---------------- 後端網址 ---------------- */
+function saveUrl(){
+  const u = document.getElementById('setupUrl').value.trim();
+  if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(u)){ toast('網址格式不對，要是 …/exec 結尾'); return; }
+  localStorage.setItem('gb_gas_url', u); load();
+}
+function resetUrl(){
+  const u = prompt('貼上新的 GAS 網址（留空＝改回程式內建網址）', localStorage.getItem('gb_gas_url') || '');
+  if (u === null) return;
+  if (u.trim()) localStorage.setItem('gb_gas_url', u.trim()); else localStorage.removeItem('gb_gas_url');
+  state.data = null; load();
+}
+
+document.getElementById('buildTag').textContent = BUILD_ID;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+load();
+</script>
+</body>
+</html>
